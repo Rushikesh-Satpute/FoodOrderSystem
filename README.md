@@ -1,4 +1,4 @@
-# 🍽️ FoodOrder — AI-Powered Food Ordering System
+# 🍽️ FoodOrder - AI-Powered Food Ordering System
 
 A full-stack food ordering application with **AI-powered semantic search**, **auto-generated menu details**, and a complete **order management workflow**. Built with React, FastAPI, MongoDB, and Google Gemini AI.
 
@@ -36,27 +36,27 @@ A full-stack food ordering application with **AI-powered semantic search**, **au
 ## ✨ Features
 
 ### 🛒 Customer Side
-- **AI-Powered Search** — Type natural language queries like *"something spicy"* or *"light lunch, not fried"* and get semantically relevant results ranked by match quality
-- **Browse Menu by Category** — Items organized into Starters, Main Course, Breads, Desserts, Beverages, Snacks
-- **Beautiful Food Cards** — Each item shows image, description, price (₹ INR), dietary tags (vegetarian/non-vegetarian indicators), and category
-- **Smart Cart** — Add/remove items, adjust quantities, see real-time total — persisted in `localStorage` across sessions
-- **Order Tracking** — Real-time status updates with visual progress bar (auto-refreshes every 5 seconds)
-- **Order History** — View all past and current orders in the "My Orders" tab
+- **AI-Powered Search** - Type natural language queries like *"something spicy"* or *"light lunch, not fried"* and get semantically relevant results ranked by match quality
+- **Browse Menu by Category** - Items organized into Starters, Main Course, Breads, Desserts, Beverages, Snacks
+- **Beautiful Food Cards** - Each item shows image, description, price (₹ INR), dietary tags (vegetarian/non-vegetarian indicators), and category
+- **Smart Cart** - Add/remove items, adjust quantities, see real-time total - persisted in `localStorage` across sessions
+- **Order Tracking** - Real-time status updates with visual progress bar (auto-refreshes every 5 seconds)
+- **Order History** - View all past and current orders in the "My Orders" tab
 
 ### 🔧 Admin Side
-- **Dashboard** — Today's revenue, total orders, active orders, order counts by status, top popular items
-- **Menu Management (CRUD)** — Add, edit, delete menu items with a beautiful modal form
-  - **AI Auto-Fill** — Toggle ON: just enter name + price, AI generates description, category, and dietary tags
-  - **Manual Mode** — Toggle OFF: fill in description, category, dietary tags, and image URL manually
-  - **Availability Toggle** — Toggle items on/off to show/hide from customers
-- **Order Management** — View all orders grouped by status, advance order status, cancel orders at any time
-- **Sorted Listings** — Active/available items shown first in the menu list
+- **Dashboard** - Today's revenue, total orders, active orders, order counts by status, top popular items
+- **Menu Management (CRUD)** - Add, edit, delete menu items with a beautiful modal form
+  - **AI Auto-Fill** - Toggle ON: just enter name + price, AI generates description, category, and dietary tags
+  - **Manual Mode** - Toggle OFF: fill in description, category, dietary tags, and image URL manually
+  - **Availability Toggle** - Toggle items on/off to show/hide from customers
+- **Order Management** - View all orders grouped by status, advance order status, cancel orders at any time
+- **Sorted Listings** - Active/available items shown first in the menu list
 
 ### 🤖 AI Capabilities
-- **Semantic Vector Search** — Uses Google Gemini embeddings (`gemini-embedding-001`) with local cosine similarity scoring
-- **Smart Query Parsing** — AI parses natural language into structured filters (price range, meal type, dietary tags, spice level, exclusions)
-- **Auto Menu Generation** — Gemini 2.5 Flash generates appetizing descriptions, categories, dietary tags, search tags, and meal metadata from just a dish name
-- **Fallback System** — Keyword-based inference when AI API is unavailable, ensuring the app always works
+- **Semantic Vector Search** - Uses Google Gemini embeddings (`gemini-embedding-001`) with local cosine similarity scoring
+- **Smart Query Parsing** - AI parses natural language into structured filters (price range, meal type, dietary tags, spice level, exclusions)
+- **Auto Menu Generation** - Gemini 2.5 Flash generates appetizing descriptions, categories, dietary tags, search tags, and meal metadata from just a dish name
+- **Fallback System** - Keyword-based inference when AI API is unavailable, ensuring the app always works
 
 ---
 
@@ -156,7 +156,7 @@ D:\KpiTech\
 - **Node.js** 18+ and npm
 - **Python** 3.11+
 - **MongoDB** running locally on port `27017` (or a MongoDB Atlas connection string)
-- **Google Gemini API Key** — Get one free at [Google AI Studio](https://ai.google.dev/)
+- **Google Gemini API Key** - Get one free at [Google AI Studio](https://ai.google.dev/)
 
 ### Backend Setup
 
@@ -288,13 +288,13 @@ python seed.py
 
 The search engine combines **AI query parsing** with **vector embeddings** for intelligent results:
 
-1. **Query Parsing** — Gemini parses the natural language query into structured filters (price range, meal type, dietary tags, spice level, exclusions like `"not fried"`)
-2. **MongoDB Filtering** — Applies parsed filters to narrow down candidates from the database
-3. **Fallback Relaxation** — If strict filters return nothing, keeps only the price filter and retries
-4. **Exclusion Handling** — Removes items matching any `exclude_tags` (e.g., `"no dairy"` excludes dairy items)
-5. **Embedding Ranking** — Generates a vector embedding for the query and ranks remaining items by cosine similarity
-6. **Meal Type Boost** — Items matching the queried meal type get a +0.10 similarity boost
-7. **Score Threshold** — Only items with similarity > 0.15 are returned (top 10 results)
+1. **Query Parsing** - Gemini parses the natural language query into structured filters (price range, meal type, dietary tags, spice level, exclusions like `"not fried"`)
+2. **MongoDB Filtering** - Applies parsed filters to narrow down candidates from the database
+3. **Fallback Relaxation** - If strict filters return nothing, keeps only the price filter and retries
+4. **Exclusion Handling** - Removes items matching any `exclude_tags` (e.g., `"no dairy"` excludes dairy items)
+5. **Embedding Ranking** - Generates a vector embedding for the query and ranks remaining items by cosine similarity
+6. **Meal Type Boost** - Items matching the queried meal type get a +0.10 similarity boost
+7. **Score Threshold** - Only items with similarity > 0.15 are returned (top 10 results)
 
 **Example Queries:**
 - `"light meal"` → Returns Masala Dosa, Mango Smoothie, etc.
@@ -306,12 +306,12 @@ The search engine combines **AI query parsing** with **vector embeddings** for i
 ### Auto Menu Generation
 
 When adding a new item with AI enabled, Gemini 2.5 Flash generates:
-- **Description** — Appetizing 2-sentence description
-- **Category** — Starters, Main Course, Breads, Desserts, Beverages, or Snacks
-- **Dietary Tags** — vegetarian, non-vegetarian, spicy, mild, vegan, gluten-free, dairy-free
-- **Search Tags** — Keywords customers might use when searching
-- **Meal Metadata** — meal_type, spice_level, is_light_meal, is_healthy, is_high_protein
-- **Embedding Text** — Optimized text for vector search indexing
+- **Description** - Appetizing 2-sentence description
+- **Category** - Starters, Main Course, Breads, Desserts, Beverages, or Snacks
+- **Dietary Tags** - vegetarian, non-vegetarian, spicy, mild, vegan, gluten-free, dairy-free
+- **Search Tags** - Keywords customers might use when searching
+- **Meal Metadata** - meal_type, spice_level, is_light_meal, is_healthy, is_high_protein
+- **Embedding Text** - Optimized text for vector search indexing
 
 **Fallback:** If the Gemini API is unavailable, keyword-based inference assigns correct tags using a curated Indian food database (40+ vegetarian keywords, category mappings for 6 categories).
 
@@ -334,8 +334,8 @@ Orders follow a strict sequential status flow:
 - **Picked Up** → Customer has collected the order
 
 **Admin Controls:**
-- **Advance** — Move order to the next status (only forward, no skipping)
-- **Cancel** — Delete the order at any time (with confirmation)
+- **Advance** - Move order to the next status (only forward, no skipping)
+- **Cancel** - Delete the order at any time (with confirmation)
 
 **Customer View:**
 - Real-time progress bar updates every 5 seconds
@@ -351,10 +351,10 @@ This project is for educational purposes.
 
 ## 🙏 Acknowledgements
 
-- [Google Gemini API](https://ai.google.dev/) — AI text generation and embeddings
-- [FastAPI](https://fastapi.tiangolo.com/) — Modern Python web framework
-- [MongoDB](https://www.mongodb.com/) — NoSQL database
-- [React](https://react.dev/) — Frontend UI library
-- [Tailwind CSS](https://tailwindcss.com/) — Utility-first CSS framework
-- [Vite](https://vite.dev/) — Next-generation frontend build tool
-- [Lucide React](https://lucide.dev/) — Beautiful open-source icons
+- [Google Gemini API](https://ai.google.dev/) - AI text generation and embeddings
+- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
+- [MongoDB](https://www.mongodb.com/) - NoSQL database
+- [React](https://react.dev/) - Frontend UI library
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
+- [Vite](https://vite.dev/) - Next-generation frontend build tool
+- [Lucide React](https://lucide.dev/) - Beautiful open-source icons

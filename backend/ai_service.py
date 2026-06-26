@@ -44,7 +44,6 @@ def infer_dietary_tags(name: str) -> list[str]:
     spicy_indicators = ["spicy", "masala", "tikka", "tandoori", "chilli", "pepper", "curry"]
     if any(kw in name_lower for kw in spicy_indicators):
         tags.append("spicy")
-
     return tags
 
 
@@ -145,7 +144,6 @@ Return JSON:
             "estimated_serving": "single",
             "embedding_text": f"{name} {cat} {' '.join(tags)}",
         }
-
 
 async def get_embedding(text: str) -> list[float]:
     result = client.models.embed_content(

@@ -1,60 +1,45 @@
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { ShoppingCart, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import NavBar from './components/NavBar';
 import CustomerPage from './pages/CustomerPage';
 import AdminPage from './pages/AdminPage';
+import LoginPage from './pages/LoginPage';
 
 function App() {
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('user');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
+    }
+  }, [user]);
+
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-gray-50">
-        <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-2">
-                <img
-                  src="/src/assets/logo.avif"
-                  alt="FoodOrder Logo"
-                  className="h-8"
-                />
-                <span className="text-xl font-bold text-gray-900">Food Order System</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <NavLink
-                  to="/"
-                  end
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                      isActive
-                        ? 'bg-green-50 text-green-700 border border-[#DCFCE7]'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                    }`
-                  }
-                >
-                  <ShoppingCart size={18} />
-                  Order
-                </NavLink>
-                <NavLink
-                  to="/admin"
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                      isActive
-                        ? 'bg-green-50 text-green-700 border border-[#DCFCE7]'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                    }`
-                  }
-                >
-                  <Settings size={18} />
-                  Admin
-                </NavLink>
-              </div>
-            </div>
-          </div>
-        </nav>
+        <NavBar user={user} onLogout={() => setUser(null)} />
 
-        <Routes>
-          <Route path="/" element={<CustomerPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-        </Routes>
+        {!user ? (
+          <LoginPage onLogin={setUser} />
+        ) : (
+          <Routes>
+            {user.role === 'user' && (
+              <Route path="/" element={<CustomerPage />} />
+            )}
+            {user.role === 'admin' && (
+              <Route path="/admin" element={<AdminPage />} />
+            )}
+            <Route
+              path="*"
+              element={<Navigate to={user.role === 'admin' ? '/admin' : '/'} replace />}
+            />
+          </Routes>
+        )}
       </div>
     </BrowserRouter>
   );

@@ -136,3 +136,4 @@ async def search_menu(search: SearchQuery):
 
     scored.sort(key=lambda x: x[1], reverse=True)
     return [doc_to_menu_item(item, score=s) for item, s in scored[:10]]
+    
