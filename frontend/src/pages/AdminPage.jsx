@@ -21,16 +21,13 @@ const STATUS_COLORS = {
 export default function AdminPage() {
   const [tab, setTab] = useState('Dashboard');
 
-  // Dashboard state
   const [dashboard, setDashboard] = useState(null);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
 
-  // Menu state
   const [menuItems, setMenuItems] = useState([]);
   const [loadingMenuItems, setLoadingMenuItems] = useState(false);
   const [addingItem, setAddingItem] = useState(false);
 
-  // Modal state
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({
@@ -43,11 +40,9 @@ export default function AdminPage() {
     use_ai: true,
   });
 
-  // Orders state
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
 
-  // Fetch data when tab changes
   useEffect(() => {
     if (tab === 'Dashboard') fetchDashboard();
     if (tab === 'Menu') fetchMenu();
@@ -70,7 +65,6 @@ export default function AdminPage() {
     setLoadingMenuItems(true);
     try {
       const res = await api.get('/admin/menu');
-      // Sort: available items first, then unavailable
       const sorted = res.data.sort((a, b) => {
         if (a.is_available === b.is_available) return 0;
         return a.is_available ? -1 : 1;
@@ -95,7 +89,6 @@ export default function AdminPage() {
     }
   };
 
-  // Add menu item
   const handleAddItem = async (e) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.price) return;
@@ -176,7 +169,6 @@ export default function AdminPage() {
     }
   };
 
-  // Delete menu item
   const deleteItem = async (id) => {
     if (!confirm('Delete this item?')) return;
     try {
@@ -187,7 +179,6 @@ export default function AdminPage() {
     }
   };
 
-  // Toggle availability
   const toggleAvailability = async (item) => {
     try {
       await api.put(`/admin/menu/${item.id}`, { is_available: !item.is_available });
@@ -197,7 +188,6 @@ export default function AdminPage() {
     }
   };
 
-  // Advance order status
   const advanceStatus = async (order) => {
     const idx = ORDER_STEPS.indexOf(order.status);
     if (idx >= ORDER_STEPS.length - 1) return;
@@ -210,7 +200,6 @@ export default function AdminPage() {
     }
   };
 
-  // Cancel order
   const cancelOrder = async (order) => {
     if (!confirm(`Cancel order #${order.id.slice(-6)}?`)) return;
     try {
@@ -221,7 +210,6 @@ export default function AdminPage() {
     }
   };
 
-  // Group orders by status
   const ordersByStatus = {};
   ORDER_STEPS.forEach(s => { ordersByStatus[s] = []; });
   orders.forEach(o => {
@@ -231,13 +219,11 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Page Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
           <p className="text-sm text-gray-500 mt-1">Manage your restaurant</p>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-1 bg-white rounded-xl p-1.5 shadow-[0_2px_10px_rgba(0,0,0,0.06)] mb-8 w-fit border border-gray-100">
           {TABS.map(t => (
             <button
@@ -253,14 +239,12 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {/* Dashboard Tab */}
         {tab === 'Dashboard' && (
           <div>
             {loadingDashboard ? (
               <Spinner />
             ) : dashboard ? (
               <div className="space-y-6">
-                {/* Stat Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <StatCard
                     icon={<DollarSign size={24} />}
@@ -288,7 +272,6 @@ export default function AdminPage() {
                   />
                 </div>
 
-                {/* Orders by Status */}
                 {dashboard.orders_by_status && (
                   <div className="bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] p-6 border border-gray-100">
                     <h3 className="font-semibold text-gray-900 mb-4">Orders by Status</h3>
@@ -306,7 +289,6 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* Top Items */}
                 {dashboard.top_items && dashboard.top_items.length > 0 && (
                   <div className="bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] p-6 border border-gray-100">
                     <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -337,10 +319,8 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Menu Tab */}
         {tab === 'Menu' && (
           <div className="space-y-6">
-            {/* Header + Add Button */}
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Menu Items</h2>
@@ -354,7 +334,6 @@ export default function AdminPage() {
               </button>
             </div>
 
-            {/* Menu Items Grid */}
             {loadingMenuItems ? (
               <Spinner />
             ) : menuItems.length === 0 ? (
@@ -367,7 +346,6 @@ export default function AdminPage() {
                     className={`bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] p-5 border-2 transition-all duration-300 hover:shadow-[0_4px_25px_rgba(0,0,0,0.15)] ${item.is_available ? 'border-transparent' : 'border-red-100 opacity-60'
                       }`}
                   >
-                    {/* Image */}
                     <div className="h-40 w-full bg-gray-100 overflow-hidden rounded-lg mb-3">
                       <img
                         src={item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80'}
@@ -385,14 +363,12 @@ export default function AdminPage() {
                       <span className="text-base font-bold text-green-700 ml-3">₹{item.price}</span>
                     </div>
 
-                    {/* Category */}
                     {item.category && (
                       <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 mb-2">
                         {item.category}
                       </span>
                     )}
 
-                    {/* Tags */}
                     {item.dietary_tags && item.dietary_tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-3">
                         {item.dietary_tags.map(tag => (
@@ -406,9 +382,7 @@ export default function AdminPage() {
                       </div>
                     )}
 
-                    {/* Actions */}
                     <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      {/* Availability Toggle */}
                       <div className="flex items-center gap-2.5">
                         <button
                           onClick={() => toggleAvailability(item)}
@@ -446,7 +420,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Orders Tab */}
         {tab === 'Orders' && (
           <div>
             {loadingOrders ? (
@@ -532,14 +505,10 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Add Item Modal */}
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={resetModal} />
-            {/* Modal */}
             <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-              {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                   {editingItem ? <><Pencil className="text-blue-600" size={20} /> Edit Menu Item</> : <><Plus className="text-green-600" size={20} /> Add New Menu Item</>}
@@ -549,9 +518,7 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              {/* Body */}
               <form onSubmit={editingItem ? handleEditItem : handleAddItem} className="p-6 space-y-5">
-                {/* AI Toggle - only for new items */}
                 {!editingItem && (
                   <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
                     <div>
@@ -568,7 +535,6 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Item Name *</label>
                   <input
@@ -581,7 +547,6 @@ export default function AdminPage() {
                   />
                 </div>
 
-                {/* Price */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Price (INR) *</label>
                   <div className="relative">
@@ -599,10 +564,8 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* Manual fields — shown when AI is off OR when editing */}
                 {(!formData.use_ai || editingItem) && (
                   <>
-                    {/* Description */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">Description *</label>
                       <textarea
@@ -615,7 +578,7 @@ export default function AdminPage() {
                       />
                     </div>
 
-                    {/* Category */}
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">Category *</label>
                       <select
@@ -630,7 +593,6 @@ export default function AdminPage() {
                       </select>
                     </div>
 
-                    {/* Dietary Tags */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Dietary Tags</label>
                       <div className="flex flex-wrap gap-2">
@@ -652,7 +614,6 @@ export default function AdminPage() {
                   </>
                 )}
 
-                {/* Image URL — always shown */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Image URL</label>
                   <div className="relative">
@@ -672,7 +633,6 @@ export default function AdminPage() {
                   )}
                 </div>
 
-                {/* Actions */}
                 <div className="flex items-center gap-3 pt-2">
                   <button type="button" onClick={resetModal} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all cursor-pointer">
                     Cancel
@@ -697,8 +657,6 @@ export default function AdminPage() {
     </div>
   );
 }
-
-// -- Helper Components (kept in same file for simplicity) --
 
 function StatCard({ icon, label, value, color }) {
   const colorMap = {

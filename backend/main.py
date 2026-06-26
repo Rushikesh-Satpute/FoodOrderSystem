@@ -10,16 +10,19 @@ from routes.search import router as search_router
 
 app = FastAPI(title="Food Ordering System")
 
-# CORS - allow all origins
+origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include routers
 app.include_router(admin_router)
 app.include_router(customer_router)
 app.include_router(search_router)

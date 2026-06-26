@@ -13,7 +13,6 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
 def doc_to_menu_item(doc: dict) -> MenuItemResponse:
-    """Convert MongoDB document to MenuItemResponse (no embedding in response)."""
     return MenuItemResponse(
         id=str(doc["_id"]),
         name=doc["name"],
@@ -27,7 +26,6 @@ def doc_to_menu_item(doc: dict) -> MenuItemResponse:
 
 
 def doc_to_order(doc: dict) -> OrderResponse:
-    """Convert MongoDB document to OrderResponse."""
     return OrderResponse(
         id=str(doc["_id"]),
         items=[OrderItemResponse(**item) for item in doc["items"]],
@@ -37,11 +35,8 @@ def doc_to_order(doc: dict) -> OrderResponse:
     )
 
 
-# --- Menu CRUD ---
-
 @router.get("/menu", response_model=list[MenuItemResponse])
 async def get_all_menu_items():
-    """Fetch ALL menu items (including unavailable) for admin."""
     cursor = db.menu_items.find()
     items = await cursor.to_list(length=500)
     return [doc_to_menu_item(doc) for doc in items]
@@ -49,21 +44,14 @@ async def get_all_menu_items():
 
 @router.post("/menu", response_model=MenuItemResponse)
 async def create_menu_item(item: MenuItemCreate):
-    # Check if we should use AI
-    if not item.description or not item.category:
-        details = await generate_menu_details(item.name, item.price)
-        desc = item.description or details["description"]
-        cat = item.category or details["category"]
-        tags = item.dietary_tags or details["dietary_tags"]
-    else:
-        desc = item.description
-        cat = item.category
-        tags = item.dietary_tags or []
+    details = await generate_menu_details(item.name, item.price)
+    desc = item.description or details["description"]
+    cat = item.category or details["category"]
+    tags = item.dietary_tags or details["dietary_tags"]
 
-    # Build text for embedding
-    text = f"{item.name} {desc} {cat} {' '.join(tags)}"
+    embedding_text = details.get("embedding_text", f"{item.name} {desc} {cat} {' '.join(tags)}")
     try:
-        embedding = await get_embedding(text)
+        embedding = await get_embedding(embedding_text)
     except Exception as e:
         print(f"Embedding failed for {item.name}: {e}")
         embedding = []
@@ -74,6 +62,13 @@ async def create_menu_item(item: MenuItemCreate):
         "category": cat,
         "price": item.price,
         "dietary_tags": tags,
+        "search_tags": details.get("search_tags", []),
+        "meal_type": details.get("meal_type", "lunch"),
+        "spice_level": details.get("spice_level", "medium"),
+        "is_light_meal": details.get("is_light_meal", False),
+        "is_healthy": details.get("is_healthy", False),
+        "is_high_protein": details.get("is_high_protein", False),
+        "estimated_serving": details.get("estimated_serving", "single"),
         "is_available": True,
         "embedding": embedding,
         "image_url": item.image_url
@@ -97,10 +92,8 @@ async def update_menu_item(id: str, updates: MenuItemUpdate):
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
 
-    # Check if embedding-relevant fields changed
     embedding_fields = {"name", "description", "category", "dietary_tags"}
     if embedding_fields & set(update_data.keys()):
-        # Merge with existing data
         merged = {**existing, **update_data}
         text = f"{merged['name']} {merged['description']} {merged['category']} {' '.join(merged['dietary_tags'])}"
         update_data["embedding"] = await get_embedding(text)
@@ -120,8 +113,6 @@ async def delete_menu_item(id: str):
         raise HTTPException(status_code=404, detail="Menu item not found")
     return {"message": "Deleted successfully"}
 
-# --- Orders Management ---
-
 @router.get("/orders", response_model=list[OrderResponse])
 async def get_all_orders():
     cursor = db.orders.find().sort("created_at", -1)
@@ -138,7 +129,6 @@ async def update_order_status(id: str, body: dict):
     if not new_status:
         raise HTTPException(status_code=400, detail="status is required")
 
-    # Validate it's a valid status
     valid_statuses = [s.value for s in OrderStatus]
     if new_status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
@@ -147,7 +137,6 @@ async def update_order_status(id: str, body: dict):
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    # Validate transition order
     transitions = ["Placed", "Confirmed", "Preparing", "Ready", "Picked Up"]
     current_idx = transitions.index(order["status"])
     new_idx = transitions.index(new_status)
@@ -166,7 +155,6 @@ async def update_order_status(id: str, body: dict):
 
 @router.delete("/orders/{id}")
 async def cancel_order(id: str):
-    """Cancel/delete an order at any time."""
     if not ObjectId.is_valid(id):
         raise HTTPException(status_code=400, detail="Invalid ID")
 
@@ -176,18 +164,14 @@ async def cancel_order(id: str):
     return {"message": "Order cancelled successfully"}
 
 
-# --- Dashboard ---
-
 @router.get("/dashboard")
 async def get_dashboard():
-    # Count orders by status
     status_pipeline = [
         {"$group": {"_id": "$status", "count": {"$sum": 1}}}
     ]
     status_cursor = db.orders.aggregate(status_pipeline)
     status_counts = {doc["_id"]: doc["count"] async for doc in status_cursor}
 
-    # Top 3 popular items by total quantity ordered
     popular_pipeline = [
         {"$unwind": "$items"},
         {"$group": {"_id": "$items.menu_item_id", "name": {"$first": "$items.name"}, "total_qty": {"$sum": "$items.quantity"}}},
@@ -197,7 +181,6 @@ async def get_dashboard():
     popular_cursor = db.orders.aggregate(popular_pipeline)
     top_items = [{"menu_item_id": doc["_id"], "name": doc["name"], "total_qty": doc["total_qty"]} async for doc in popular_cursor]
 
-    # Today's revenue
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     revenue_pipeline = [
         {"$match": {"created_at": {"$gte": today_start}}},

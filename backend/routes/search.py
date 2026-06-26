@@ -1,139 +1,14 @@
-import re
 import math
 from fastapi import APIRouter
 
 from database import db
 from models import SearchQuery, MenuItemResponse
-from ai_service import get_embedding
+from ai_service import get_embedding, parse_search_query
 
 router = APIRouter(tags=["Search"])
 
-# Exclusion patterns: "not X", "no X", "without X", "exclude X"
-EXCLUSION_PATTERNS = re.compile(
-    r'\b(?:not|no|without|exclude|avoid|skip|don\'t want)\s+(\w+)',
-    re.IGNORECASE
-)
-
-# Map exclusion keywords to item attributes that should be filtered
-EXCLUSION_KEYWORD_MAP = {
-    "fried": {"keywords": ["fried", "samosa", "pakora", "vada", "crispy"], "fields": ["name", "description"]},
-    "spicy": {"keywords": ["spicy"], "fields": ["dietary_tags"]},
-    "meat": {"keywords": ["chicken", "mutton", "fish", "lamb", "prawn"], "fields": ["name", "description"]},
-    "chicken": {"keywords": ["chicken"], "fields": ["name", "description"]},
-    "sugar": {"keywords": ["sweet", "sugar", "syrup"], "fields": ["description"]},
-    "dairy": {"keywords": ["butter", "cream", "cheese", "paneer", "yogurt", "lassi"], "fields": ["name", "description"]},
-    "gluten": {"keywords": ["naan", "roti", "bread", "paratha"], "fields": ["name"]},
-    "oil": {"keywords": ["fried", "samosa", "pakora", "vada"], "fields": ["name", "description"]},
-}
-
-
-def parse_exclusions(query: str) -> tuple[str, list[str]]:
-    """Parse exclusion patterns from query. Returns cleaned query and list of exclusion keywords."""
-    exclusions = []
-    matches = EXCLUSION_PATTERNS.findall(query)
-    for match in matches:
-        word = match.lower()
-        if word in EXCLUSION_KEYWORD_MAP:
-            exclusions.append(word)
-        # Also check if the word directly appears in any item attributes
-
-    # Remove exclusion phrases from the query to get the "positive" intent
-    cleaned = EXCLUSION_PATTERNS.sub("", query).strip()
-    # Clean up double spaces
-    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-
-    return cleaned, exclusions
-
-
-def item_matches_exclusion(item: dict, exclusions: list[str]) -> bool:
-    """Check if an item should be excluded based on exclusion keywords."""
-    for excl in exclusions:
-        if excl not in EXCLUSION_KEYWORD_MAP:
-            continue
-        rule = EXCLUSION_KEYWORD_MAP[excl]
-        for field in rule["fields"]:
-            text = ""
-            if field == "name":
-                text = item.get("name", "").lower()
-            elif field == "description":
-                text = item.get("description", "").lower()
-            elif field == "dietary_tags":
-                text = " ".join(item.get("dietary_tags", [])).lower()
-
-            for kw in rule["keywords"]:
-                if kw in text:
-                    return True
-    return False
-
-
-# Keyword-to-concept mapping for text fallback
-CONCEPT_MAP = {
-    "light": ["dosa", "idli", "soup", "salad", "lassi", "buttermilk", "crepe", "fermented"],
-    "healthy": ["dosa", "idli", "soup", "salad", "grilled", "tandoori", "steamed", "fermented"],
-    "quick": ["samosa", "pakora", "naan", "roti", "wrap"],
-    "meal": ["dosa", "biryani", "rice", "naan", "roti", "curry", "masala"],
-    "spicy": ["tikka", "masala", "curry", "tandoori", "chilli", "pepper"],
-    "mild": ["butter", "creamy", "korma", "makhani", "dal"],
-    "sweet": ["gulab", "jalebi", "kheer", "halwa", "kulfi", "lassi", "mango", "syrup", "dessert"],
-    "lunch": ["dosa", "biryani", "rice", "curry", "dal", "roti"],
-    "dinner": ["biryani", "butter chicken", "paneer", "tikka", "curry", "naan", "tandoori"],
-    "snack": ["samosa", "pakora", "vada", "chaat", "tikki"],
-    "dessert": ["gulab jamun", "jalebi", "kheer", "halwa", "kulfi", "rasgulla"],
-    "south indian": ["dosa", "idli", "vada", "sambar", "crepe", "fermented"],
-    "drink": ["lassi", "chai", "coffee", "juice"],
-    "cold": ["lassi", "kulfi", "mango"],
-    "creamy": ["butter chicken", "korma", "makhani", "paneer butter masala", "butter"],
-    "fried": ["samosa", "pakora", "vada"],
-    "bread": ["naan", "roti", "paratha", "garlic naan"],
-    "curry": ["butter chicken", "paneer butter masala", "tikka masala", "korma"],
-    "vegetarian": ["paneer", "dosa", "idli", "samosa", "gulab jamun", "naan"],
-}
-
-
-def text_score(item: dict, query: str) -> float:
-    """Score an item against a query using text matching + concept mapping."""
-    score = 0.0
-    q = query.lower().strip()
-    name = item.get("name", "").lower()
-    desc = item.get("description", "").lower()
-    cat = item.get("category", "").lower()
-    tags = " ".join(item.get("dietary_tags", [])).lower()
-    all_text = f"{name} {desc} {cat} {tags}"
-
-    # Exact phrase match
-    if q in name: score += 10.0
-    if q in desc: score += 6.0
-    if q in tags: score += 8.0
-    if q in cat: score += 7.0
-
-    # Word-level match
-    for word in q.split():
-        if len(word) < 2: continue
-        if word in name: score += 5.0
-        if word in desc: score += 3.0
-        if word in tags: score += 4.0
-        if word in cat: score += 3.0
-
-    # Concept mapping
-    for word in q.split():
-        if word in CONCEPT_MAP:
-            for kw in CONCEPT_MAP[word]:
-                if kw in name: score += 4.0; break
-                if kw in desc: score += 2.5; break
-                if kw in all_text: score += 1.5; break
-
-    # Phrase concept mapping
-    for phrase, kws in CONCEPT_MAP.items():
-        if phrase in q:
-            for kw in kws:
-                if kw in name: score += 4.0; break
-                if kw in all_text: score += 2.0; break
-
-    return score
-
 
 def cosine_similarity(a: list[float], b: list[float]) -> float:
-    """Compute cosine similarity between two vectors."""
     if len(a) != len(b):
         return 0.0
     dot = sum(x * y for x, y in zip(a, b))
@@ -145,7 +20,10 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
 
 
 def doc_to_menu_item(doc: dict, score: float = None) -> dict:
-    """Convert MongoDB document to dict with optional score."""
+    mt = doc.get("meal_type")
+    if isinstance(mt, list):
+        mt = mt[0] if mt else None
+
     result = MenuItemResponse(
         id=str(doc["_id"]),
         name=doc["name"],
@@ -155,6 +33,12 @@ def doc_to_menu_item(doc: dict, score: float = None) -> dict:
         dietary_tags=doc.get("dietary_tags", []),
         is_available=doc.get("is_available", True),
         image_url=doc.get("image_url", "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80"),
+        search_tags=doc.get("search_tags", []),
+        meal_type=mt,
+        spice_level=doc.get("spice_level"),
+        is_light_meal=doc.get("is_light_meal"),
+        is_healthy=doc.get("is_healthy"),
+        is_high_protein=doc.get("is_high_protein"),
     ).model_dump()
     if score is not None:
         result["score"] = round(score, 4)
@@ -163,78 +47,92 @@ def doc_to_menu_item(doc: dict, score: float = None) -> dict:
 
 @router.post("/search")
 async def search_menu(search: SearchQuery):
-    """Search menu items using Gemini embeddings with exclusion-aware filtering."""
+    # Search menu items
     query_text = search.query.strip()
     if not query_text:
         cursor = db.menu_items.find({"is_available": True}).limit(20)
         results = await cursor.to_list(length=20)
         return [doc_to_menu_item(doc) for doc in results]
 
-    # Step 1: Parse exclusions from the query
-    cleaned_query, exclusions = parse_exclusions(query_text)
-    print(f"Search: '{query_text}' | Cleaned: '{cleaned_query}' | Exclusions: {exclusions}")
+    parsed = await parse_search_query(query_text)
+    semantic_query = parsed.get("semantic_query") or query_text
+    print(f"Search: '{query_text}' | Parsed: {parsed}")
 
-    # Step 2: Fetch all available items
-    cursor = db.menu_items.find({"is_available": True})
+    mongo_query = {"is_available": True}
+    if parsed.get("max_price") is not None:
+        mongo_query["price"] = {"$lte": parsed["max_price"]}
+    if parsed.get("min_price") is not None:
+        mongo_query.setdefault("price", {})["$gte"] = parsed["min_price"]
+    if parsed.get("is_light_meal") is True:
+        mongo_query["is_light_meal"] = True
+    if parsed.get("is_healthy") is True:
+        mongo_query["is_healthy"] = True
+    if parsed.get("is_high_protein") is True:
+        mongo_query["is_high_protein"] = True
+    if parsed.get("meal_type"):
+        mongo_query["meal_type"] = {"$in": parsed["meal_type"]}
+    if parsed.get("category"):
+        mongo_query["category"] = parsed["category"]
+    if parsed.get("dietary_tags"):
+        mongo_query["dietary_tags"] = {"$all": parsed["dietary_tags"]}
+    if parsed.get("spice_level"):
+        mongo_query["spice_level"] = parsed["spice_level"]
+
+    cursor = db.menu_items.find(mongo_query)
     all_items = await cursor.to_list(length=500)
 
-    # Step 3: Try embedding-based search with the cleaned (positive) query
-    use_embeddings = False
+    # if filters returned nothing, keep only price filter
+    if not all_items:
+        relaxed = {"is_available": True}
+        if parsed.get("max_price") is not None:
+            relaxed["price"] = {"$lte": parsed["max_price"]}
+        if parsed.get("min_price") is not None:
+            relaxed.setdefault("price", {})["$gte"] = parsed["min_price"]
+        cursor = db.menu_items.find(relaxed)
+        all_items = await cursor.to_list(length=500)
+
+    exclude_tags = parsed.get("exclude_tags", [])
+    if exclude_tags:
+        all_items = [
+            item for item in all_items
+            if not any(
+                tag in " ".join(item.get("dietary_tags", [])).lower()
+                or tag in item.get("name", "").lower()
+                or tag in item.get("description", "").lower()
+                or tag in " ".join(item.get("search_tags", [])).lower()
+                for tag in exclude_tags
+            )
+        ]
+
+    if not all_items:
+        return []
+
     query_embedding = None
     try:
-        # Use the cleaned query for embedding (without exclusion words)
-        embed_text = cleaned_query if cleaned_query else query_text
-        query_embedding = await get_embedding(embed_text)
-        has_real_embeddings = any(
-            item.get("embedding") and len(item.get("embedding", [])) > 0
-            for item in all_items
-        )
-        if has_real_embeddings:
-            use_embeddings = True
+        query_embedding = await get_embedding(semantic_query)
     except Exception as e:
-        print(f"Embedding search unavailable: {e}")
+        print(f"Embedding unavailable: {e}")
 
-    # Step 4: Score items
     scored = []
+    want_meal_type = parsed.get("meal_type", [])
     for item in all_items:
-        # Skip excluded items entirely
-        if exclusions and item_matches_exclusion(item, exclusions):
-            continue
-
         sim = 0.0
-
-        if use_embeddings and query_embedding:
+        if query_embedding:
             item_emb = item.get("embedding", [])
-            if item_emb and len(item_emb) > 0 and len(item_emb) == len(query_embedding):
+            if item_emb and len(item_emb) == len(query_embedding):
                 sim = cosine_similarity(query_embedding, item_emb)
 
-        # Also compute text score and blend
-        ts = text_score(item, cleaned_query if cleaned_query else query_text)
+        # boost score if meal_type matches
+        if want_meal_type and sim > 0:
+            item_mt = item.get("meal_type")
+            if isinstance(item_mt, list):
+                if any(mt in item_mt for mt in want_meal_type):
+                    sim += 0.10
+            elif isinstance(item_mt, str) and item_mt in want_meal_type:
+                sim += 0.10
 
-        # Combined score: embedding similarity weighted 70%, text score normalized weighted 30%
-        if sim > 0:
-            # Normalize text score to 0-1 range (max possible ~30)
-            normalized_ts = min(ts / 20.0, 1.0)
-            combined = sim * 0.7 + normalized_ts * 0.3
-        else:
-            # No embedding available, use text score only, normalized
-            combined = min(ts / 15.0, 1.0)
+        if sim > 0.15:
+            scored.append((item, sim))
 
-        if combined > 0.35:
-            scored.append((item, combined))
-
-    # Step 5: Sort by score descending
     scored.sort(key=lambda x: x[1], reverse=True)
-
-    # Step 6: Dynamic cutoff — only return items that are meaningfully relevant
-    # If we have results, use a dynamic threshold based on the top score
-    if scored:
-        top_score = scored[0][1]
-        # Only keep items within 85% of the top score AND above absolute minimum
-        min_absolute = 0.40
-        min_relative = top_score * 0.80
-        final_threshold = max(min_absolute, min_relative)
-        scored = [(item, score) for item, score in scored if score >= final_threshold]
-
-    # Return top 10 at most
-    return [doc_to_menu_item(item, score=score) for item, score in scored[:10]]
+    return [doc_to_menu_item(item, score=s) for item, s in scored[:10]]

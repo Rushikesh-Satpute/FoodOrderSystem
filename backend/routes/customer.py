@@ -12,7 +12,11 @@ router = APIRouter(tags=["Customer"])
 
 
 def doc_to_menu_item(doc: dict) -> MenuItemResponse:
-    """Convert MongoDB document to MenuItemResponse."""
+    # meal_type can be a list from AI, just grab the first one
+    mt = doc.get("meal_type")
+    if isinstance(mt, list):
+        mt = mt[0] if mt else None
+
     return MenuItemResponse(
         id=str(doc["_id"]),
         name=doc["name"],
@@ -21,13 +25,18 @@ def doc_to_menu_item(doc: dict) -> MenuItemResponse:
         price=doc["price"],
         dietary_tags=doc.get("dietary_tags", []),
         is_available=doc.get("is_available", True),
-        image_url=doc.get("image_url", f"https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80")
+        image_url=doc.get("image_url", f"https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80"),
+        search_tags=doc.get("search_tags", []),
+        meal_type=mt,
+        spice_level=doc.get("spice_level"),
+        is_light_meal=doc.get("is_light_meal"),
+        is_healthy=doc.get("is_healthy"),
+        is_high_protein=doc.get("is_high_protein"),
     )
 
 
 @router.get("/menu")
 async def get_menu():
-    """Fetch all available menu items grouped by category."""
     cursor = db.menu_items.find({"is_available": True})
     items = await cursor.to_list(length=200)
 
