@@ -8,7 +8,7 @@ A full-stack food ordering application with **AI-powered semantic search**, **au
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat&logo=fastapi&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-8-47A248?style=flat&logo=mongodb&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
-![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.0-4285F4?style=flat&logo=google&logoColor=white)
+![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.5-4285F4?style=flat&logo=google&logoColor=white)
 
 ---
 
@@ -53,9 +53,9 @@ A full-stack food ordering application with **AI-powered semantic search**, **au
 - **Sorted Listings** — Active/available items shown first in the menu list
 
 ### 🤖 AI Capabilities
-- **Semantic Vector Search** — Uses Google Gemini embeddings (`gemini-embedding-001`, 3072 dimensions) with local cosine similarity scoring
-- **Smart Query Processing** — Parses exclusion patterns (`"not fried"`, `"no spice"`, `"without dairy"`) and filters results accordingly
-- **Auto Menu Generation** — Gemini 2.0 Flash generates appetizing descriptions, categories, and dietary tags from just a dish name
+- **Semantic Vector Search** — Uses Google Gemini embeddings (`gemini-embedding-001`) with local cosine similarity scoring
+- **Smart Query Parsing** — AI parses natural language into structured filters (price range, meal type, dietary tags, spice level, exclusions)
+- **Auto Menu Generation** — Gemini 2.5 Flash generates appetizing descriptions, categories, dietary tags, search tags, and meal metadata from just a dish name
 - **Fallback System** — Keyword-based inference when AI API is unavailable, ensuring the app always works
 
 ---
@@ -67,7 +67,7 @@ A full-stack food ordering application with **AI-powered semantic search**, **au
 | **Frontend** | React 19, React Router 7, Tailwind CSS 4, Lucide React, Axios |
 | **Backend** | FastAPI (Python), Pydantic, Uvicorn |
 | **Database** | MongoDB (via Motor async driver) |
-| **AI/ML** | Google Gemini 2.0 Flash (text generation), Gemini Embedding 001 (vector search) |
+| **AI/ML** | Google Gemini 2.5 Flash (text generation), Gemini Embedding 001 (vector search) |
 | **Build Tool** | Vite 8 |
 | **Language** | JavaScript (ES6+), Python 3.11+ |
 
@@ -87,7 +87,7 @@ A full-stack food ordering application with **AI-powered semantic search**, **au
 │   │  - Cart      │       │  - Orders         │   │
 │   │  - Orders    │       │                   │   │
 │   └──────┬───────┘       └────────┬──────────┘   │
-│          │    Axios (proxy /api)  │               │
+│          │  Axios (localhost:8000) │               │
 ├──────────┼────────────────────────┼───────────────┤
 │          ▼                        ▼               │
 │   ┌──────────────────────────────────────────┐   │
@@ -120,7 +120,8 @@ D:\KpiTech\
 │   ├── main.py                  # FastAPI entry point
 │   ├── models.py                # Pydantic data models
 │   ├── requirements.txt         # Python dependencies
-│   ├── seed.py                  # Database seeder (7 Indian dishes)
+│   ├── seed.py                  # Database seeder (27 items)
+│   ├── food_ordering.menu_items.json  # Seed data
 │   └── routes/
 │       ├── __init__.py
 │       ├── admin.py             # Admin CRUD, orders, dashboard
@@ -130,12 +131,12 @@ D:\KpiTech\
 └── frontend/
     ├── index.html               # HTML entry point
     ├── package.json             # Node.js dependencies
-    ├── vite.config.js           # Vite + React + Tailwind + API proxy
+    ├── vite.config.js           # Vite + React + Tailwind config
     ├── public/
     │   ├── favicon.svg
     │   └── icons.svg
     └── src/
-        ├── api.js               # Axios instance (baseURL: /api)
+        ├── api.js               # Axios instance (baseURL: localhost:8000)
         ├── App.jsx              # Router with navigation
         ├── index.css            # Tailwind CSS
         ├── main.jsx             # React entry point
@@ -197,7 +198,7 @@ npm install
 npm run dev
 ```
 
-Frontend runs at **http://localhost:5173** and proxies API requests to the backend.
+Frontend runs at **http://localhost:5173** and makes API requests directly to `http://localhost:8000`.
 
 ### Environment Variables
 
@@ -214,23 +215,44 @@ DB_NAME=food_ordering
 
 ### Database Seeding
 
-The `seed.py` script populates the database with 7 pre-configured Indian dishes, each with Gemini-generated embeddings:
+The `seed.py` script populates the database with 27 pre-configured menu items, each with Gemini-generated descriptions, tags, and embeddings:
 
 ```bash
 cd backend
 python seed.py
 ```
 
-**Seeded Items:**
+**Seeded Items (27 total):**
+
 | Dish | Price (₹) | Category | Tags |
 |------|-----------|----------|------|
-| Paneer Butter Masala | 240 | Main Course | vegetarian, spicy |
-| Chicken Tikka Masala | 320 | Main Course | non-vegetarian, spicy |
-| Garlic Naan | 45 | Breads | vegetarian |
-| Samosa | 80 | Starters | vegetarian |
-| Masala Dosa | 120 | Main Course | vegetarian |
-| Mango Lassi | 90 | Beverages | vegetarian |
-| Gulab Jamun | 70 | Desserts | vegetarian |
+| Veg Spring Rolls | 160 | Starters | vegetarian |
+| Chicken Tikka | 290 | Main Course | non-vegetarian, spicy |
+| Hara Bhara Kebab | 180 | Starters | vegetarian |
+| Paneer Butter Masala | 240 | Main Course | vegetarian, mild |
+| Dal Tadka | 170 | Main Course | vegetarian, gluten-free |
+| Butter Chicken | 320 | Main Course | non-vegetarian, mild |
+| Veg Biryani | 220 | Main Course | vegetarian |
+| Vegan Buddha Bowl | 280 | Main Course | vegetarian, gluten-free |
+| Garlic Naan | 60 | Breads | vegetarian, mild |
+| Butter Roti | 20 | Breads | vegetarian |
+| Masala Dosa | 120 | Snacks | vegetarian, mild |
+| Samosa | 40 | Starters | vegetarian |
+| Poha | 70 | Snacks | vegetarian |
+| Chocolate Brownie | 110 | Desserts | vegetarian |
+| Gulab Jamun | 90 | Desserts | vegetarian |
+| Cold Coffee | 130 | Beverages | vegetarian |
+| Fresh Orange Juice | 140 | Beverages | vegetarian |
+| Mango Smoothie | 170 | Beverages | vegetarian, mild, gluten-free |
+| Dragon Paneer | 260 | Starters | vegetarian, spicy |
+| Chilli Mushroom | 219.83 | Starters | vegetarian, spicy |
+| Peri Peri Fries | 90 | Snacks | vegetarian, vegan, spicy, gluten-free, dairy-free |
+| Quinoa Veg Salad | 230 | Starters | vegetarian, gluten-free |
+| Thai Green Curry | 310 | Main Course | vegetarian, spicy |
+| Chicken 65 | 120 | Starters | non-vegetarian |
+| Chilli Chicken | 180 | Starters | non-vegetarian, spicy |
+| Veg Kolhapuri | 260 | Main Course | vegetarian, spicy |
+| Schezwan Noodles | 140 | Main Course | vegetarian, spicy |
 
 ---
 
@@ -264,29 +286,34 @@ python seed.py
 
 ### Semantic Search
 
-The search engine combines **vector embeddings** with **text matching** for intelligent results:
+The search engine combines **AI query parsing** with **vector embeddings** for intelligent results:
 
-1. **Query Processing** — Parses exclusion patterns (`"not fried"` → excludes fried items)
-2. **Embedding Generation** — Converts the cleaned query to a 3072-dimensional vector via Gemini
-3. **Cosine Similarity** — Compares query embedding against all menu item embeddings
-4. **Score Blending** — 70% embedding similarity + 30% text matching for final ranking
-5. **Dynamic Cutoff** — Only returns items scoring within 80% of the top result
+1. **Query Parsing** — Gemini parses the natural language query into structured filters (price range, meal type, dietary tags, spice level, exclusions like `"not fried"`)
+2. **MongoDB Filtering** — Applies parsed filters to narrow down candidates from the database
+3. **Fallback Relaxation** — If strict filters return nothing, keeps only the price filter and retries
+4. **Exclusion Handling** — Removes items matching any `exclude_tags` (e.g., `"no dairy"` excludes dairy items)
+5. **Embedding Ranking** — Generates a vector embedding for the query and ranks remaining items by cosine similarity
+6. **Meal Type Boost** — Items matching the queried meal type get a +0.10 similarity boost
+7. **Score Threshold** — Only items with similarity > 0.15 are returned (top 10 results)
 
 **Example Queries:**
-- `"light meal"` → Returns Masala Dosa, Mango Lassi
-- `"something sweet"` → Returns Gulab Jamun, Mango Lassi
-- `"cold drink"` → Returns Mango Lassi
-- `"a light lunch that is not fried"` → Returns Masala Dosa, Mango Lassi (Samosa excluded)
-- `"spicy food"` → Returns Chicken Tikka Masala, Samosa
+- `"light meal"` → Returns Masala Dosa, Mango Smoothie, etc.
+- `"something sweet"` → Returns Gulab Jamun, Chocolate Brownie
+- `"spicy lunch under 200"` → Filters by price, meal type, and spice level
+- `"a light lunch that is not fried"` → Returns light items, excludes fried ones
+- `"healthy breakfast"` → Filters by is_healthy + meal_type
 
 ### Auto Menu Generation
 
-When adding a new item with AI enabled, Gemini 2.0 Flash generates:
-- **Description** — Appetizing 2-3 sentence description
+When adding a new item with AI enabled, Gemini 2.5 Flash generates:
+- **Description** — Appetizing 2-sentence description
 - **Category** — Starters, Main Course, Breads, Desserts, Beverages, or Snacks
 - **Dietary Tags** — vegetarian, non-vegetarian, spicy, mild, vegan, gluten-free, dairy-free
+- **Search Tags** — Keywords customers might use when searching
+- **Meal Metadata** — meal_type, spice_level, is_light_meal, is_healthy, is_high_protein
+- **Embedding Text** — Optimized text for vector search indexing
 
-**Fallback:** If the Gemini API is unavailable, keyword-based inference assigns correct tags using a curated Indian food database (40+ vegetarian keywords, category mappings).
+**Fallback:** If the Gemini API is unavailable, keyword-based inference assigns correct tags using a curated Indian food database (40+ vegetarian keywords, category mappings for 6 categories).
 
 ---
 
